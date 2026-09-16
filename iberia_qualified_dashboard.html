@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Iberia Qualified Target Accounts</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f4f6f9; color: #1a1a2e; }
+  header { background: #032D60; color: white; padding: 20px 32px; display: flex; align-items: center; gap: 16px; }
+  header h1 { font-size: 20px; font-weight: 600; }
+  header .subtitle { font-size: 13px; opacity: 0.75; margin-top: 2px; }
+  .controls { background: white; padding: 16px 32px; border-bottom: 1px solid #e0e0e0; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .controls label { font-size: 13px; font-weight: 600; color: #444; white-space: nowrap; }
+  select { padding: 8px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; min-width: 180px; background: white; }
+  .stats { display: flex; gap: 12px; margin-left: auto; }
+  .stat { background: #f0f4ff; border-radius: 8px; padding: 8px 16px; text-align: center; }
+  .stat .num { font-size: 22px; font-weight: 700; color: #032D60; }
+  .stat .label { font-size: 11px; color: #666; }
+  .table-wrap { padding: 24px 32px; overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+  thead tr { background: #032D60; color: white; }
+  th { padding: 12px 16px; text-align: left; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer; user-select: none; white-space: nowrap; }
+  th:hover { background: #044a8c; }
+  th .sort-icon { margin-left: 4px; opacity: 0.6; }
+  tbody tr { border-bottom: 1px solid #f0f0f0; transition: background 0.15s; }
+  tbody tr:hover { background: #f5f8ff; }
+  tbody tr:last-child { border-bottom: none; }
+  td { padding: 11px 16px; font-size: 13px; }
+  td.account { font-weight: 500; }
+  td.account a { color: #032D60; text-decoration: none; }
+  td.account a:hover { text-decoration: underline; }
+  .badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+  .badge.yes { background: #d4edda; color: #155724; }
+  .badge.no { background: #f8f9fa; color: #999; }
+  .pipe { font-weight: 600; color: #166534; }
+  .no-pipe { color: #aaa; }
+  .empty-state { text-align: center; padding: 60px; color: #999; }
+  .updated { padding: 8px 32px; font-size: 11px; color: #aaa; text-align: right; }
+  input[type="text"] { padding: 8px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; width: 200px; }
+  .filters-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; width: 100%; }
+  .checkboxes { display: flex; gap: 16px; align-items: center; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Iberia — Qualified Target Accounts</h1>
+    <div class="subtitle">Sales Cloud Install base · Fuente: org62 Salesforce · Actualizado: <span id="updatedDate"></span></div>
+  </div>
+</header>
+
+<div class="controls">
+  <div class="filters-row">
+    <label for="rvpFilter">RVP:</label>
+    <select id="rvpFilter" onchange="onRvpChange()">
+      <option value="">Todos los RVP</option>
+    </select>
+
+    <label for="flmFilter">FLM:</label>
+    <select id="flmFilter" onchange="filterTable()">
+      <option value="">Todos los FLM</option>
+    </select>
+
+    <label for="aeFilter">AE:</label>
+    <select id="aeFilter" onchange="filterTable()">
+      <option value="">Todos los AEs</option>
+    </select>
+
+    <label for="searchInput">Buscar:</label>
+    <input type="text" id="searchInput" placeholder="Nombre de cuenta…" oninput="filterTable()">
+
+    <div class="checkboxes">
+      <label><input type="checkbox" id="pipeOnly" onchange="filterTable()"> Solo con Open Pipe</label>
+      <label><input type="checkbox" id="posicionadoOnly" onchange="filterTable()"> Solo posicionados</label>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><div class="num" id="countVisible">—</div><div class="label">Cuentas</div></div>
+      <div class="stat"><div class="num" id="countPosicionado">—</div><div class="label">Posicionadas</div></div>
+      <div class="stat"><div class="num" id="totalPipe">—</div><div class="label">Open Pipe Total</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="table-wrap">
+  <table id="mainTable">
+    <thead>
+      <tr>
+        <th onclick="sortTable(0)">Cuenta <span class="sort-icon">↕</span></th>
+        <th onclick="sortTable(1)">AE <span class="sort-icon">↕</span></th>
+        <th onclick="sortTable(2)">FLM <span class="sort-icon">↕</span></th>
+        <th onclick="sortTable(3)">RVP <span class="sort-icon">↕</span></th>
+        <th onclick="sortTable(4)">Qualified Posicionado <span class="sort-icon">↕</span></th>
+        <th onclick="sortTable(5)">Qualified Open Pipe <span class="sort-icon">↕</span></th>
+      </tr>
+    </thead>
+    <tbody id="tableBody">
+    </tbody>
+  </table>
+  <div class="empty-state" id="emptyState" style="display:none">No hay cuentas que coincidan con el filtro.</div>
+</div>
+<div class="updated">Datos extraídos de org62.lightning.force.com · Reporte: Iberia Target List for Qualified (00Oed000009IQbZEAW)</div>
+
+<script>
+// ─── DATOS ───────────────────────────────────────────────────────────────────
+const pipeByAccount = {
+  "0010M00001WI5rqQAD": 116464.33,
+  "0013y00001c86X2AAI": 232928.66,
+  "0013000001CCOQAAA5": 116464.33,
+  "0013000001Mj3DCAAZ": 136000.00,
+  "00130000009wxLrAAI": 81525.03,
+  "0010M00001TyX3DQAV": 40762.52,
+  "0010M00001W8DmuQAF": 93171.46,
+  "00130000002xJG3AAM": 67549.31,
+  "0010M00001NYdL7QAL": 58232.16,
+  "0010M00001QqRKfQAN": 116464.33,
+  "0013y00001eEy9OAAS": 72790.21,
+  "0013000001JzBAlAAN": 43674.12
+};
+
+const posicionadoByAccount = {
+  "0013000000M1BNMAA3": true,
+  "0010M00001SIikLQAT": true,
+  "0010M00001Qkg7DQAR": true,
+  "0010M00001W8DmuQAF": true,
+  "0010M00001WI5rqQAD": true
+};
+
+// ownerId → {flm, rvp}  (from org62 manager chain)
+const managerByOwner = {
+  "00530000004wD5wAAE": {flm:"Samuel Bonamigo",rvp:""},
+  "0050M00000DxgdkQAB": {flm:"Javier Olea",rvp:"Pablo Rodriguez Añino"},
+  "0053y00000GBX63AAH": {flm:"Fernando Galán",rvp:"Francisco Gil"},
+  "0050M00000CEFWBQA5": {flm:"David Nunez Rodriguez",rvp:"Alejandro Romero"},
+  "0053y00000FfUPyAAN": {flm:"Ricardo Usaola",rvp:"Davide Andreoni"},
+  "0053y00000GDolYAAT": {flm:"",rvp:""},
+  "0053y00000G0a3UAAR": {flm:"Javier Olea",rvp:"Pablo Rodriguez Añino"},
+  "0050M00000D0erPQAR": {flm:"Manuel Melle Ocáriz",rvp:"Pablo Rodriguez Añino"},
+  "0053y00000BzBcrAAF": {flm:"Arancha Pintado Cabrera",rvp:"Laura Guzmán Linares"},
+  "00530000009MY9eAAG": {flm:"",rvp:""},
+  "0053y00000GJn1pAAD": {flm:"Dayana Peraza",rvp:"Francisco Gil"},
+  "0053000000AYLuWAAX": {flm:"Alberto Azerrad",rvp:""},
+  "00530000007PNbzAAG": {flm:"Javier Olea",rvp:"Pablo Rodriguez Añino"},
+  "00530000004wVRyAAM": {flm:"Manuel Melle Ocáriz",rvp:"Pablo Rodriguez Añino"},
+  "0053000000BQQP1AAP": {flm:"Sylvia Moreno",rvp:"Francisco Gil"},
+  "0053y00000GJmk5AAD": {flm:"Tiago Machado",rvp:"Fernando Braz"},
+  "0050M00000Dtos5QAB": {flm:"Marcos Tarjuelo",rvp:"Alejandro Romero"},
+  "0053y00000GDvouAAD": {flm:"Francisco Gil",rvp:"Natalia Escobedo"},
+  "00530000007PW5JAAW": {flm:"Matt DeTroia",rvp:"Lenore Lang"},
+  "005ed0000022oh7AAA": {flm:"Dayana Peraza",rvp:"Francisco Gil"},
+  "0053y00000GoErvAAF": {flm:"David Nunez Rodriguez",rvp:"Alejandro Romero"},
+  "0053000000BOvhqAAD": {flm:"Sylvia Moreno",rvp:"Francisco Gil"},
+  "0050M00000Du1MvQAJ": {flm:"Tiago Machado",rvp:"Fernando Braz"},
+  "0053000000C0eK7AAJ": {flm:"Sylvia Moreno",rvp:"Francisco Gil"},
+  "0053y00000GDokfAAD": {flm:"Javier Benavente",rvp:"Jean-Noel Vilain"},
+  "00530000007RTRWAA4": {flm:"",rvp:""},
+  "0050M00000EIYF5QAP": {flm:"Sylvia Moreno",rvp:"Francisco Gil"},
+  "0050M00000DxGMHQA3": {flm:"Dayana Peraza",rvp:"Francisco Gil"},
+  "0050M00000EIKlqQAH": {flm:"Enrique Polo De Lara",rvp:"Marco Hernansanz"},
+  "0050M00000ESGROQA5": {flm:"Francisco Gil",rvp:"Natalia Escobedo"},
+  "00530000004wCzIAAU": {flm:"Alberto Azerrad",rvp:""},
+  "0050M00000C1xOLQAZ": {flm:"Guillermo Sanz",rvp:"Pablo Rodriguez Añino"},
+  "0050M00000CNScNQAX": {flm:"",rvp:""},
+  "0053y00000GElFtAAL": {flm:"Dayana Peraza",rvp:"Francisco Gil"},
+  "005ed0000022oFhAAI": {flm:"Dayana Peraza",rvp:"Francisco Gil"},
+  "0053y00000Gvg4HAAR": {flm:"",rvp:""},
+  "0053y00000ETPs2AAH": {flm:"",rvp:""},
+  "0053y00000ETQYIAA5": {flm:"Carles De Oleza Ferrer",rvp:"Javier Benavente"},
+  "0053y00000Bz68NAAR": {flm:"Tiago Machado",rvp:"Fernando Braz"},
+  "0053y00000H02DmAAJ": {flm:"Tiago Machado",rvp:"Fernando Braz"},
+  "0050M00000Dtn2IQAR": {flm:"Fernando Braz",rvp:"Natalia Escobedo"},
+  "0053y00000FyYChAAN": {flm:"Fernando Braz",rvp:"Natalia Escobedo"},
+  "0053y00000FnWyuAAF": {flm:"Javier Benavente",rvp:"Jean-Noel Vilain"},
+  "005ed000000QXl7AAG": {flm:"Emmanuelle Jard",rvp:"Carlos Garcia Sanz"},
+  "0053y00000GekCBAAZ": {flm:"",rvp:""},
+  "0053y00000GjhP0AAJ": {flm:"Fernando Galán",rvp:"Francisco Gil"},
+  "0053y00000GNihjAAD": {flm:"Javier Olea",rvp:"Pablo Rodriguez Añino"},
+  "0053y00000G0WFMAA3": {flm:"",rvp:""},
+  "0050M00000BpOH4QAN": {flm:"Francisco Albares",rvp:"Ricardo Usaola"},
+  "0050M00000D0ezsQAB": {flm:"Francisco Gil",rvp:"Natalia Escobedo"},
+  "0050M00000EIZOrQAP": {flm:"Fernando Galán",rvp:"Francisco Gil"},
+  "0050M00000EvxWRQAZ": {flm:"Arancha Pintado Cabrera",rvp:"Laura Guzmán Linares"},
+  "0050M00000EvynpQAB": {flm:"Fernando Galán",rvp:"Francisco Gil"},
+  "00530000004wD5xAAE": {flm:"Samuel Bonamigo",rvp:""},
+  "00530000004wp7PAAQ": {flm:"Alberto Azerrad",rvp:""},
+  "0053y00000FfVZIAA3": {flm:"Fernando Braz",rvp:"Natalia Escobedo"},
+  "0053y00000G8nKsAAJ": {flm:"Sylvia Moreno",rvp:"Francisco Gil"},
+  "0053y00000G8yBQAAZ": {flm:"",rvp:""},
+  "0053y00000GjbdqAAB": {flm:"Fernando Galán",rvp:"Francisco Gil"},
+  "0053y00000Gscs7AAB": {flm:"Maria-Teresa Moreira",rvp:"Pablo Rodriguez Añino"},
+  "0053y00000GsjzPAAR": {flm:"Tiago Machado",rvp:"Fernando Braz"},
+  "0053y00000GvfBHAAZ": {flm:"Dayana Peraza",rvp:"Francisco Gil"},
+  "0053y00000H07BPAAZ": {flm:"Carles De Oleza Ferrer",rvp:"Javier Benavente"},
+  "005ed000000HwUOAA0": {flm:"Manuel Melle Ocáriz",rvp:"Pablo Rodriguez Añino"},
+  "005ed000000bka9AAA": {flm:"Carles De Oleza Ferrer",rvp:"Javier Benavente"},
+  "005ed0000022o2nAAA": {flm:"Dayana Peraza",rvp:"Francisco Gil"},
+  "005ed0000022oNlAAI": {flm:"Dayana Peraza",rvp:"Francisco Gil"},
+  "005ed0000028aRlAAI": {flm:"Fernando Galán",rvp:"Francisco Gil"},
+  "005ed0000028aWbAAI": {flm:"Dayana Peraza",rvp:"Francisco Gil"},
+  "005ed000000hTpxAAE": {flm:"Javier Benavente",rvp:"Jean-Noel Vilain"},
+  "0050M00000Brx1BQAR": {flm:"Jean-Noel Vilain",rvp:"Carlos Jimeno"},
+  "0050M00000CNRnUQAX": {flm:"Dominic Coyle",rvp:"Rami Habib"},
+  "0050M00000DtomRQAR": {flm:"Guillermo Sanz",rvp:"Pablo Rodriguez Añino"},
+  "00530000007RNgpAAG": {flm:"Manuel Melle Ocáriz",rvp:"Pablo Rodriguez Añino"},
+  "00530000009N2KmAAK": {flm:"Beatriz Clemente",rvp:"Alejandro Romero"},
+  "0053000000BqsfiAAB": {flm:"",rvp:""},
+  "0053y00000GU0fBAAT": {flm:"Ender Gözen",rvp:"Valentin Grünberg"},
+  "0050M00000G0D4rQAF": {flm:"Dominic Coyle",rvp:"Rami Habib"},
+  "005ed000000JFrNAAW": {flm:"Tiago Machado",rvp:"Fernando Braz"},
+  "005ed000000LwCHAA0": {flm:"Carles De Oleza Ferrer",rvp:"Javier Benavente"},
+  "005ed000000VxrpAAC": {flm:"Kate Skrypchenko",rvp:"Hrvoje Supic"},
+  "0053y00000HCIFcAAP": {flm:"Javier Benavente",rvp:"Jean-Noel Vilain"},
+  "0050M00000ATizxQAD": {flm:"Manuel Melle Ocáriz",rvp:"Pablo Rodriguez Añino"},
+  "0050M00000F52eIQAR": {flm:"Francisco Gil",rvp:"Natalia Escobedo"},
+  // Pipe/posicionado accounts with real owners from last query
+  "0053y00000Bz68rAAB": {flm:"Alfredo Valenzuela",rvp:"Francisco Gil"},  // Ricardo Ruiz (Freepik/Seedtag/Azbil owners mapped)
+  "0050M00000CNTVrQAP": {flm:"David Nunez Rodriguez",rvp:"Alejandro Romero"}, // Miguel Torrejón (NATURGY)
+  "0050M00000EvUB1QAN": {flm:"Sylvia Moreno",rvp:"Francisco Gil"}, // Marta Marin (PERK PLATFORM)
+  "005ed000000JFWPAA4": {flm:"Javier Olea",rvp:"Pablo Rodriguez Añino"}, // Diego Sánchez (EULEN)
+  "0050M00000EvwlaQAB": {flm:"Fernando Galán",rvp:"Francisco Gil"}, // Maria Marsal (Wallbox)
+  "0050M00000CNSZsQAP": {flm:"David Nunez Rodriguez",rvp:"Alejandro Romero"}, // Paula Lago (Cellnex)
+  "0053y00000FyYEOAA3": {flm:"Fernando Braz",rvp:"Natalia Escobedo"}, // Miguel Valente (EDP)
+  "0053y00000GBWynAAH": {flm:"Javier Olea",rvp:"Pablo Rodriguez Añino"}, // Paloma Rudino (Duro Felguera)
+  "0050M00000BqCG7QAN": {flm:"Manuel Melle Ocáriz",rvp:"Pablo Rodriguez Añino"}, // Jesús Goya (Salesland)
+  "005ed000000RMyvAAG": {flm:"Sergi Ricart",rvp:"Alejandro Jimeno"}, // Adrià Giner (J.B.M. CAMPLLONG)
+  "005ed000000RLjVAAW": {flm:"Jaime Serrano",rvp:"Alejandro Jimeno"}, // Alejandro Gavilan (AELCA)
+  "0050M00000CEFS4QAP": {flm:"Francisco Gil",rvp:"Natalia Escobedo"}, // Alfredo Valenzuela (Azbil Telstar owner)
+};
+
+const accounts = [
+  {id:"0013000000LZOC4AAP",name:"REXFIN srl",ownerId:"00530000004wD5wAAE",owner:"Giovanni Crispino"},
+  {id:"0013000001CD3f6AAD",name:"LANDER SIMULATION & TRAINING SOLUTIONS SA",ownerId:"0050M00000DxgdkQAB",owner:"Jorge Gil Peña"},
+  {id:"0013000000ZkRpqAAF",name:"Inveravante Inversiones Universales S. L",ownerId:"0053y00000GBX63AAH",owner:"Alberto De la Fuente Sagaseta"},
+  {id:"00130000016iepFAAQ",name:"Axess Networks",ownerId:"0050M00000CEFWBQA5",owner:"Gabriel España"},
+  {id:"0013000000K7os4AAB",name:"mark'ennovy Personalized Care, S.L.",ownerId:"0053y00000FfUPyAAN",owner:"Arlette Gonzalez"},
+  {id:"0013000000GtYzLAAV",name:"Saldiprivati S.r.l.",ownerId:"00530000004wD5wAAE",owner:"Giovanni Crispino"},
+  {id:"0013000000JIO9TAAX",name:"SERVIF srl",ownerId:"00530000004wD5wAAE",owner:"Giovanni Crispino"},
+  {id:"0013000001GUQGmAAP",name:"Viroc Portugal – Indústrias de Madeira e Cimento, S.A.",ownerId:"0053y00000GDolYAAT",owner:"Joana Antunes"},
+  {id:"00130000001w2upAAA",name:"VASS Consultoria de Sistemas SL",ownerId:"0053y00000G0a3UAAR",owner:"Alejandro Gómez García"},
+  {id:"0013000000Zii1xAAB",name:"UBESOL SL",ownerId:"0050M00000D0erPQAR",owner:"José Miquel Tormo"},
+  {id:"0013y00001eX2LSAA0",name:"Benfica Estádio",ownerId:"0053y00000BzBcrAAF",owner:"Sofia Cardoso"},
+  {id:"00130000002x9d1AAA",name:"Ebiquity PLC",ownerId:"00530000009MY9eAAG",owner:"Neil Seddon"},
+  {id:"0010M00001QalwpQAB",name:"Gallery Center SLU",ownerId:"0053y00000GJn1pAAD",owner:"Griselda Gil"},
+  {id:"0013000000JzHfCAAV",name:"SINTRA CONSULTING s.r.l.",ownerId:"00530000004wD5wAAE",owner:"Giovanni Crispino"},
+  {id:"0013000000rnJbwAAE",name:"REEVO",ownerId:"0053000000AYLuWAAX",owner:"Giovanni Crispino"},
+  {id:"0013000001J5jzcAAB",name:"EasyM2M Sociedad Limitada",ownerId:"00530000007PNbzAAG",owner:"Antonio Hernandez"},
+  {id:"0013000000LzMzsAAF",name:"NOS, SGPS, S.A.",ownerId:"00530000004wVRyAAM",owner:"Rafael Espinosa Sanchez"},
+  {id:"0010M00001QjvqwQAB",name:"AEDAS HOMES S.A.",ownerId:"0053000000BQQP1AAP",owner:"Manuel Herranz Rodríguez"},
+  {id:"0010M00001WYvQ7QAL",name:"55PBX",ownerId:"0053y00000GJmk5AAD",owner:"Julia Fernandes"},
+  {id:"0013y00001emMaUAAU",name:"TIBA TECH, S.L.",ownerId:"0053y00000GDvouAAD",owner:"Ander Dueñas"},
+  {id:"00130000000eXpkAAE",name:"American City Business Journals",ownerId:"00530000007PW5JAAW",owner:"Sameer Husain"},
+  {id:"0010M00001SeThaQAF",name:"GRADOS Y POSGRADOS VILLANUEVA, S.A.",ownerId:"005ed0000022oh7AAA",owner:"JAVIER CORDOBA"},
+  {id:"0010M00001QoO3bQAF",name:"NEXUS ENERGIA SA",ownerId:"0053y00000GoErvAAF",owner:"Orestes German"},
+  {id:"0013000001MnlATAAZ",name:"COMERCIAL FARLABO ESPAÑA SL",ownerId:"0053000000BOvhqAAD",owner:"Laura Martin Garcia"},
+  {id:"0013000001MsehnAAB",name:"Candido José Rodrigues S.A",ownerId:"0050M00000Du1MvQAJ",owner:"Francisco Vilas-Boas Gil"},
+  {id:"001000000011Y1OAAU",name:"ADEVINTA SPAIN SL",ownerId:"0053000000C0eK7AAJ",owner:"Jaime Olabarría"},
+  {id:"0013000001CBUtiAAH",name:"IRIS GLOBAL SOLUCIONES, S.L.U",ownerId:"0053y00000GDokfAAD",owner:"Manuel Holst"},
+  {id:"0010M00001UUwhUQAT",name:"TCS Industrial",ownerId:"0053y00000GJmk5AAD",owner:"Julia Fernandes"},
+  {id:"0010M00001WA6J9QAL",name:"Quental Technologies SL",ownerId:"0050M00000Dtos5QAB",owner:"Beatriz Vazquez"},
+  {id:"00130000003EZRYAA4",name:"Rhenus Office Systems GmbH",ownerId:"00530000007RTRWAA4",owner:"Gisela Plueckebaum"},
+  {id:"001ed00000KqYgPAAV",name:"Fluidra SA",ownerId:"0053y00000H07BPAAZ",owner:"Jaime Pomares Perego"},
+  {id:"0013000000Bo6syAAB",name:"I.M.D. SOFT LTD.",ownerId:"00530000004wD5xAAE",owner:"Giovanni Cipriani"},
+  {id:"00130000002xJ8cAAE",name:"VEOLIA ESPAÑA S.L.U",ownerId:"005ed000000HwUOAA0",owner:"Fernando Galán"},
+  {id:"00130000016iDHEAA2",name:"FEEDZAI - Consultadoria e Inovação Tecnológica, S.A.",ownerId:"0053y00000GDolYAAT",owner:"Joana Antunes"},
+  {id:"00130000002xJ5GAAU",name:"MOSTOLES INDUSTRIAL, S.A.",ownerId:"0050M00000EvynpQAB",owner:"Igor Gondra"},
+  {id:"0013000000hLO6DAAW",name:"Diari Ara",ownerId:"00530000004wCzIAAU",owner:"Emiliano Guevara"},
+  {id:"0013000001L6gEuAAJ",name:"Nautalia Viajes S.L.",ownerId:"0050M00000ESGROQA5",owner:"Inigo Guerrero"},
+  {id:"00130000002xJ7yAAE",name:"CORREOS EXPRESS",ownerId:"0050M00000EIKlqQAH",owner:"Francisco Reverte"},
+  {id:"0013000000NQEJ8AAP",name:"MOTION INTERNATIONAL EUROPE LTD",ownerId:"0053000000AYLuWAAX",owner:"Giovanni Crispino"},
+  {id:"0010M00001QqQoyQAF",name:"TGS Teegen Gebäudedienstleistungen GmbH",ownerId:"0050M00000EOJCwQAP",owner:"Barbara Bosse"},
+  {id:"00130000000VoVRAA0",name:"Software GmbH",ownerId:"0050M00000FeywnQAB",owner:"Alex Scheck"},
+  {id:"0013000000LzUslAAF",name:"OPENBRAVO SL",ownerId:"00530000004wCzIAAU",owner:"Emiliano Guevara"},
+  {id:"0013y00001chZVmAAM",name:"De'Longhi Electrodomesticos Espana SLU",ownerId:"005ed000000LwCHAA0",owner:"Patricia Porcel"},
+  {id:"0013000000DTBk1AAH",name:"ABB Information Systems Ltd.",ownerId:"0050M00000G0D4rQAF",owner:"Boris Kanja"},
+  {id:"0013000000rqr5QAAQ",name:"Borges International Group",ownerId:"0050M00000EIYF5QAP",owner:"Alvaro sanchez prieto"},
+  {id:"0010M00001SeTfGQAV",name:"GRUPO GARNICA PLYWOOD, S.A.U.",ownerId:"0053y00000FfUPyAAN",owner:"Arlette Gonzalez"},
+  {id:"0013000000rpQ4oAAE",name:"Telefonica Global Technology, SAU*",ownerId:"0050M00000ET1kXQAT",owner:"Belen Sanchez Gongora"},
+  {id:"0010M00001P0Ut8QAF",name:"Abadia Retuerta SA",ownerId:"0050M00000C1xOLQAZ",owner:"Javier Garnica"},
+  {id:"0010M00001MtQaZQAV",name:"Simon Holding S.L.",ownerId:"0050M00000CNScNQAX",owner:"Juan Roldós Galés"},
+  {id:"0013y00001dOJWMAA4",name:"Laboratoris Almirall S.A. (Tenders)",ownerId:"0053y00000GElFtAAL",owner:"Juan Fabregat"},
+  {id:"0013000001GUZ2OAAX",name:"Acteco Productos y Servicios, SL.",ownerId:"005ed0000022oFhAAI",owner:"Patricia Porcel"},
+  {id:"0010M00001QnUDOQA3",name:"AdGlow",ownerId:"00530000007PNbzAAG",owner:"Antonio Hernandez"},
+  {id:"0013000000LBQBGAA5",name:"MILANO ACCIAI srl",ownerId:"00530000004wD5wAAE",owner:"Giovanni Crispino"},
+  {id:"0013000000RaJSoAAN",name:"BARCELONESA DE DROGAS Y PRODUCTOS QUÍMICOS SA",ownerId:"0053y00000GjbdqAAB",owner:"Alvaro Jimenez"},
+  {id:"0010M00001Z04KgQAJ",name:"Barcelo Gestion Hotelera",ownerId:"0050M00000ATizxQAD",owner:"Angela Cea"},
+  {id:"0013000001IgHtJAAV",name:"MAPFRE ESPAÑA, COMPAÑIA DE SEGUROS Y REASEGUROS, S.A.",ownerId:"0053y00000GDokfAAD",owner:"Manuel Holst"},
+  {id:"0010M00001Yb1OqQAJ",name:"Belimed AG",ownerId:"0050M00000CNRnUQAX",owner:"Kai Lotzer"},
+  {id:"0010M00001P0WPvQAN",name:"SABICO SEGURIDAD SOCIEDAD ANONIMA",ownerId:"0053y00000Gvg4HAAR",owner:"Carolina Ajuria"},
+  {id:"0013000001If7eJAAR",name:"ATMIRA ESPACIO DE CONSULTORIA SL",ownerId:"0053y00000GBX63AAH",owner:"Alberto De la Fuente Sagaseta"},
+  {id:"0010M00001VKg7cQAD",name:"COMERCIAL DE EDICIONES SM S.A.",ownerId:"0050M00000D0ezsQAB",owner:"Fernando Galán"},
+  {id:"0013000000I3pWxAAJ",name:"Ferrer & Ojeda",ownerId:"0053y00000ETPs2AAH",owner:"Luis Enrique Blas"},
+  {id:"0010M00001WZ98NQAT",name:"Sandoz AG",ownerId:"0050M00000G0D4rQAF",owner:"Boris Kanja"},
+  {id:"00130000016gaxSAAQ",name:"Kantox European Union, SL",ownerId:"0053y00000ETQYIAA5",owner:"Maite Zhang Yuan"},
+  {id:"0010M00001UEShAQAX",name:"PORTA DA FRENTE - SOC. DE MEDIACAO IMOBILIARIA, LDA.",ownerId:"0053y00000Bz68NAAR",owner:"Rita Real"},
+  {id:"0010M00001SeUkwQAF",name:"INDASA - INDÚSTRIA DE ABRASIVOS, S.A.",ownerId:"0053y00000Bz68NAAR",owner:"Rita Real"},
+  {id:"0010M00001THOB4QAP",name:"LINGOTE ALUMÍNIOS, S.A.",ownerId:"0053y00000Bz68NAAR",owner:"Rita Real"},
+  {id:"0010M00001Qm5BHQAZ",name:"SAVOY - Investimentos Turísticos, S.A.",ownerId:"0053y00000H02DmAAJ",owner:"Diogo Roque"},
+  {id:"0010M00001Qkos3QAB",name:"Sopropé - Organizações de Calçado, S.A.",ownerId:"0050M00000Dtn2IQAR",owner:"Tiago Machado"},
+  {id:"0013000000hKxBDAA0",name:"Stage Entertainment España",ownerId:"00530000007PNbzAAG",owner:"Antonio Hernandez"},
+  {id:"0010M00001WA7KhQAL",name:"Eurostars Hotel Company SL",ownerId:"0050M00000CNScNQAX",owner:"Juan Roldós Galés"},
+  {id:"0010M00001QqbsOQAR",name:"Vacaciones eDreams SL",ownerId:"0053y00000GvfBHAAZ",owner:"Giovanna Martin"},
+  {id:"00130000002xIzvAAE",name:"CTL TH Packaging",ownerId:"0050M00000BpOH4QAN",owner:"Judit Martin"},
+  {id:"0013000000ZkoImAAJ",name:"VENAIR Ibérica SAU",ownerId:"0053y00000GjbdqAAB",owner:"Alvaro Jimenez"},
+  {id:"0010M00001WY6vjQAD",name:"INFORMA D&B",ownerId:"0053y00000G0WFMAA3",owner:"Manuela Vasco"},
+  {id:"0013000000rouEbAAI",name:"ANGELO PO GRANDI CUCINE SPA",ownerId:"0053000000AYLuWAAX",owner:"Giovanni Crispino"},
+  {id:"0013000000ZmDjNAAV",name:"Telefónica Global Solutions USA, INC",ownerId:"0053000000BzrxUAAR",owner:"Monica Murga"},
+  {id:"00130000001NIbIAAW",name:"3D2B srl",ownerId:"0053000000AYLyTAAX",owner:"Michele Barra"},
+  {id:"0013y00001e64btAAA",name:"Biotest AG",ownerId:"005ed000000hTpxAAE",owner:"Pau Vico"},
+  {id:"0013000000NSBOvAAP",name:"Grupo Hermanos Martin Sa",ownerId:"0053y00000GekCBAAZ",owner:"Maria Prieto"},
+  {id:"0010M00001QqZWkQAN",name:"Avintia Desarrollos Inmobiliarios, S.L.",ownerId:"0050M00000EIYF5QAP",owner:"Alvaro sanchez prieto"},
+  {id:"0013000000HIo8KAAT",name:"GRIFOLS S.A.",ownerId:"005ed000000hTpxAAE",owner:"Pau Vico"},
+  {id:"00130000002xJ40AAE",name:"TECNICAS REUNIDAS, S.A.",ownerId:"0050M00000D0ezsQAB",owner:"Fernando Galán"},
+  {id:"0013000000KawzNAAR",name:"Viva Aqua Service Spain",ownerId:"00530000007RNgpAAG",owner:"Jorge Esparza Martin"},
+  {id:"0010M00001QoOYoQAN",name:"Visabeira Global, SGPS, S.A.",ownerId:"005ed000000bka9AAA",owner:"Pedro Costa"},
+  {id:"0013000001HeCceAAF",name:"Octo Telematics S.p.A.",ownerId:"0053000000AYLuWAAX",owner:"Giovanni Crispino"},
+  {id:"0010M00001UMgR9QAL",name:"ENÉRGYA VM GESTIÓN DE ENERGÍA, SLU",ownerId:"0053y00000GjhP0AAJ",owner:"Sergio Algarabide Marín"},
+  {id:"0013000000NOx3uAAD",name:"Tolsa S.A.",ownerId:"0053y00000GBX63AAH",owner:"Alberto De la Fuente Sagaseta"},
+  {id:"00130000002xIxLAAU",name:"CARRERAS GRUPO LOGISTICO S.A.",ownerId:"0053y00000GNihjAAD",owner:"Claudia Gutiérrez"},
+  {id:"0013000000Fej9sAAB",name:"Fsas Technologies GmbH",ownerId:"0053000000BqsfiAAB",owner:"Christiane Maria Hoffmann"},
+  {id:"0013000001J5IZSAA3",name:"Noray Bioinformatics, S.L.U.",ownerId:"00530000007PNbzAAG",owner:"Antonio Hernandez"},
+  {id:"0013000000FfQklAAF",name:"Muface - Mutualidad General de Funcionarios Civiles del Estado",ownerId:"00530000009N2KmAAK",owner:"José Cerrato"},
+  {id:"0013000000LXUuXAAX",name:"ROI Media",ownerId:"00530000004wD5xAAE",owner:"Giovanni Cipriani"},
+  {id:"00130000002xIhWAAU",name:"SOGENAVE",ownerId:"0053y00000FyYChAAN",owner:"Manuel Aveleira"},
+  {id:"0013000001GUi8VAAT",name:"DREAMFIT INNOVACION Y DESARROLLO SL",ownerId:"005ed0000022oNlAAI",owner:"Miguel Fernandez"},
+  {id:"0010M00001SeTWLQA3",name:"AVALON",ownerId:"0053y00000G0a3UAAR",owner:"Alejandro Gómez García"},
+  {id:"0013000000ZkMKwAAN",name:"Asoplast SpA",ownerId:"00530000004wD5xAAE",owner:"Giovanni Cipriani"},
+  {id:"0013000001GUVktAAH",name:"PLURAL - COOPERATIVA FARMACEUTICA, CRL",ownerId:"0053y00000Bz68NAAR",owner:"Rita Real"},
+  {id:"0013000000M0GhmAAF",name:"Grupo Cupa (DUP)",ownerId:"0053y00000GjhP0AAJ",owner:"Sergio Algarabide Marín"},
+  {id:"0013000001Mj9b3AAB",name:"LEDA CONSULTING S.L.",ownerId:"0053000000BOvhqAAD",owner:"Laura Martin Garcia"},
+  {id:"0013000001EYILpAAP",name:"BENDEUS S.L.",ownerId:"005ed0000028aRlAAI",owner:"Germán Flores"},
+  {id:"0013000001GUNvUAAX",name:"PREMO, S.L.",ownerId:"0050M00000EIZOrQAP",owner:"Daniele Antronaco"},
+  {id:"0013000000rq0ZnAAI",name:"Allianz Technology SE (GT Motive EINSA, S.A.U.)",ownerId:"00530000007PNbzAAG",owner:"Antonio Hernandez"},
+  {id:"0013000001NXmXaAAL",name:"Wallapop SLU",ownerId:"0053y00000GJn1pAAD",owner:"Griselda Gil"},
+  {id:"0013000000M1mrqAAB",name:"[E+V] Engel & Völkers IT-Services GmbH",ownerId:"00530000007RTRWAA4",owner:"Gisela Plueckebaum"},
+  {id:"0013000000NR0TWAA1",name:"GALP ENERGIA ESPAÑA SAU",ownerId:"0050M00000EIKlqQAH",owner:"Francisco Reverte"},
+  {id:"0013000001GUQXdAAP",name:"Wizz Air Hungary Zrt.",ownerId:"005ed000000QXl7AAG",owner:"Jakub Buzinkay"},
+  {id:"00130000002O6ZpAAK",name:"GRUPO J URIACH SL",ownerId:"005ed000000hTpxAAE",owner:"Pau Vico"},
+  {id:"0010M00001WOU6NQAX",name:"Abante Asesores Distribución Agencia de Valores S.A",ownerId:"0053y00000FnWyuAAF",owner:"Angel Puerta"},
+  {id:"0013y00001e668qAAA",name:"Quiron Prevención Segunda ORG",ownerId:"0053y00000GekCBAAZ",owner:"Maria Prieto"},
+  {id:"0013000000Zkjd0AAB",name:"Erhardt Gestión Corporativa SL",ownerId:"0050M00000DxGMHQA3",owner:"Judit Martin"},
+  {id:"0013000001JxwgtAAB",name:"ROVENSA SA",ownerId:"0053y00000FyYChAAN",owner:"Manuel Aveleira"},
+  {id:"0010M00001SpnCfQAJ",name:"STRA, S.A.",ownerId:"0053y00000Gscs7AAB",owner:"André Coutinho"},
+  {id:"0010M00001SHecEQAT",name:"Teldat SA",ownerId:"005ed0000028aRlAAI",owner:"Germán Flores"},
+  {id:"0013000001LW69gAAD",name:"MOVENTO (GRUPO MOVENTIA)",ownerId:"0053y00000GBX63AAH",owner:"Alberto De la Fuente Sagaseta"},
+  {id:"0013000000M2I45AAF",name:"UNION BANCAIRE PRIVÉE, UBP SA",ownerId:"0050M00000Brx1BQAR",owner:"Wilm Schwarte"},
+  {id:"0013000000hMb2xAAC",name:"GHELFI ONDULATI SPA",ownerId:"0053000000AYLyTAAX",owner:"Michele Barra"},
+  {id:"0010M00001QnsjOQAR",name:"Fundación del Teatro Real",ownerId:"00530000007PNbzAAG",owner:"Antonio Hernandez"},
+  {id:"0013y00001dkAePAAU",name:"Fundación Bertelsmann",ownerId:"005ed0000028aRlAAI",owner:"Germán Flores"},
+  {id:"0013000000NSdzFAAT",name:"Smart Res SRL",ownerId:"00530000004wD5wAAE",owner:"Giovanni Crispino"},
+  {id:"0010M00001QaOtAQAV",name:"Fabricable SL",ownerId:"0053y00000GjbdqAAB",owner:"Alvaro Jimenez"},
+  {id:"0010M00001V6aycQAB",name:"CLUB ATLETICO DE MADRID S.A.D.",ownerId:"0053y00000G8nKsAAJ",owner:"Lucia Paradinas"},
+  {id:"0010M00001UVTDwQAP",name:"TGADES",ownerId:"0053000000BQQP1AAP",owner:"Manuel Herranz Rodríguez"},
+  {id:"0010M00001PE5CjQAL",name:"Goal Systems SL",ownerId:"0053y00000G0a3UAAR",owner:"Alejandro Gómez García"},
+  {id:"00130000002xItrAAE",name:"Synectic Tecnologias de la Información SAU",ownerId:"0050M00000DtomRQAR",owner:"Marc Sala Casals"},
+  {id:"0010M00001WYLi5QAH",name:"THINGSO2 SL",ownerId:"0050M00000Dtos5QAB",owner:"Beatriz Vazquez"},
+  {id:"0013000001GYYeLAAX",name:"BABYRADIO S.L.",ownerId:"00530000007PNbzAAG",owner:"Antonio Hernandez"},
+  {id:"0013000001GUV0MAAX",name:"RIBERALVES - SGPS, S.A.",ownerId:"0053y00000GDolYAAT",owner:"Joana Antunes"},
+  {id:"0013y00001cIsViAAK",name:"Fluidra S.A.",ownerId:"0050M00000DtomRQAR",owner:"Marc Sala Casals"},
+  {id:"0010M00001NYbIwQAL",name:"OSRAM GmbH",ownerId:"0053y00000GU0fBAAT",owner:"Heinrich Lier"},
+  {id:"0010M00001Yu17mQAB",name:"EINES SYSTEMS SL",ownerId:"0053y00000GjbdqAAB",owner:"Alvaro Jimenez"},
+  {id:"00130000002xIq0AAE",name:"GIRBAU, S.A.",ownerId:"0050M00000CNScNQAX",owner:"Juan Roldós Galés"},
+  {id:"0010M00001UEVm4QAH",name:"Calidad Pascual S.A.U",ownerId:"0050M00000EIYF5QAP",owner:"Alvaro sanchez prieto"},
+  {id:"0013000000rnng9AAA",name:"MFI INVESTMENTS LIMITED",ownerId:"00530000004wD5wAAE",owner:"Giovanni Crispino"},
+  {id:"0010M00001PDv7mQAD",name:"Acciona agua LAB",ownerId:"0050M00000D0ezsQAB",owner:"Fernando Galán"},
+  {id:"00130000002lewmAAA",name:"Intelligent Software Components S.A.",ownerId:"00530000004wCzIAAU",owner:"Emiliano Guevara"},
+  {id:"0010M00001UVYI9QAP",name:"Colquímica - Indústria Nacional De Colas, S.A.",ownerId:"005ed000000JFrNAAW",owner:"André Matos"},
+  {id:"0013000000A0UhdAAF",name:"Super Bock Bebidas, S.A.",ownerId:"005ed000000bka9AAA",owner:"Pedro Costa"},
+  {id:"0013000000NQejtAAD",name:"NOS TECHNOLOGY - Concepção, Construção e Gestão de Redes",ownerId:"0053y00000FfVZIAA3",owner:"Jose Luis Valdivielso Moreno"},
+  {id:"0013000000KvtQDAAZ",name:"BARCELO GESTION HOTELERA, S.L.",ownerId:"0050M00000ATizxQAD",owner:"Angela Cea"},
+  {id:"0010M00001PDvYMQA1",name:"Banco Bilbao Vizcaya Argentaria, S.A.",ownerId:"0053y00000HCIFcAAP",owner:"Marta Marin Guillen"},
+  {id:"0013000000hIpvCAAS",name:"CJR RENEWABLES, SGPS, S.A",ownerId:"0053y00000GsjzPAAR",owner:"Adelaide Leitao"},
+  {id:"0013000000ZmPmkAAF",name:"Rakuten TV Europe, S.L.U.",ownerId:"0053y00000GvfBHAAZ",owner:"Giovanna Martin"},
+  {id:"0013000001L6cDcAAJ",name:"DUP Funds People",ownerId:"0053000000BOvhqAAD",owner:"Laura Martin Garcia"},
+  {id:"0013000001GX3EEAA1",name:"Takeda Pharmaceuticals International AG",ownerId:"0053y00000G8yBQAAZ",owner:"Christopher Käpernick"},
+  {id:"0013y00001eHwz5AAC",name:"SOFTWARE TECNIC TECNOCIM SL",ownerId:"0053y00000GjbdqAAB",owner:"Alvaro Jimenez"},
+  {id:"0010M00001V48lLQAR",name:"CONSULTA SESSION SL.",ownerId:"0053000000BQQP1AAP",owner:"Manuel Herranz Rodríguez"},
+  {id:"0010M00001V4BuAQAV",name:"ARQUIMEA GRUPO",ownerId:"0053y00000G0a3UAAR",owner:"Alejandro Gómez García"},
+  {id:"0010M00001Qkb2QQAR",name:"Ontruck",ownerId:"005ed0000022o2nAAA",owner:"Sara Bravo"},
+  {id:"0010M00001W8HoWQAV",name:"Homeserve Asistencia Spain SAU HQ",ownerId:"0050M00000EIZOrQAP",owner:"Daniele Antronaco"},
+  {id:"0013000001MnqgoAAB",name:"Endress+Hauser InfoServe GmbH+Co. KG 2nd ORG",ownerId:"0053y00000GU0fBAAT",owner:"Heinrich Lier"},
+  {id:"0013y00001dNlJbAAK",name:"Telefonica Global Technology, SAU* (2)",ownerId:"0050M00000ET1kXQAT",owner:"Belen Sanchez Gongora"},
+  {id:"0010M00001SmuJXQAZ",name:"PETROL d.d. Ljubljana",ownerId:"005ed000000VxrpAAC",owner:"Marko Skoric"},
+  {id:"001ed00000RoW1xAAF",name:"GRUPO LAR MANAGEMENT SERVICES IBERIA, S.L.",ownerId:"005ed0000028aWbAAI",owner:"Maria Marsal"},
+  {id:"0010M00001SIVT6QAP",name:"OBRAMAT",ownerId:"0053y00000G0WCcAAN",owner:"Francisco Buenaga Cuesta"},
+  {id:"00130000002ihBOAAY",name:"CESCE",ownerId:"00530000004wp7PAAQ",owner:"Fernando Andres"},
+  {id:"00130000002xJJLAA2",name:"GRUPO ANTOLIN-INGENIERIA, S.A.",ownerId:"0053y00000GekCBAAZ",owner:"Maria Prieto"},
+  {id:"0013y00001cwEaNAAU",name:"Intelltech - Intelligent Technologies",ownerId:"0053y00000GJmk5AAD",owner:"Julia Fernandes"},
+  {id:"00130000016iPQCAA2",name:"BANKINTER GLOBAL SERVICES, S.A.",ownerId:"0050M00000EvxWRQAZ",owner:"Adrián Fernández Zerolo"},
+  {id:"0013y00001Z1KVeAAN",name:"NACIONAL GEST - CONSULTORES DE SEGUROS, LDA",ownerId:"0053y00000Gscs7AAB",owner:"André Coutinho"},
+  // Cuentas con Qualified Open Pipe
+  {id:"0010M00001WI5rqQAD",name:"Freepik Company, S.L.",ownerId:"0053y00000Bz68rAAB",owner:"Ricardo Ruiz"},
+  {id:"0013y00001c86X2AAI",name:"NATURGY IBERIA SA",ownerId:"0050M00000CNTVrQAP",owner:"Miguel Torrejón"},
+  {id:"0013000001CCOQAAA5",name:"Salesland",ownerId:"0050M00000BqCG7QAN",owner:"Jesús Goya Abaurrea"},
+  {id:"0013000001Mj3DCAAZ",name:"PERK PLATFORM S.L.",ownerId:"0050M00000EvUB1QAN",owner:"Marta Marin Guillen"},
+  {id:"00130000009wxLrAAI",name:"EULEN SA",ownerId:"005ed000000JFWPAA4",owner:"Diego Sánchez"},
+  {id:"0010M00001TyX3DQAV",name:"SEEDTAG ADVERTISING SL",ownerId:"0053y00000Bz68rAAB",owner:"Ricardo Ruiz"},
+  {id:"0010M00001W8DmuQAF",name:"Wallbox Chargers S.L.U",ownerId:"0050M00000EvwlaQAB",owner:"Maria Marsal"},
+  {id:"00130000002xJG3AAM",name:"Cellnex Telecom, S.A.",ownerId:"0050M00000CNSZsQAP",owner:"Paula Lago"},
+  {id:"0010M00001NYdL7QAL",name:"IQVIA Solutions Portugal, Unipessoal LDA",ownerId:"0053y00000GJmk5AAD",owner:"Julia Fernandes"},
+  {id:"0010M00001QqRKfQAN",name:"Azbil Telstar",ownerId:"0053y00000Bz68rAAB",owner:"Ricardo Ruiz"},
+  {id:"0013y00001eEy9OAAS",name:"EDP, S.A.",ownerId:"0053y00000FyYEOAA3",owner:"Miguel Valente"},
+  {id:"0013000001JzBAlAAN",name:"Decisões e Soluções",ownerId:"005ed000000JFrNAAW",owner:"André Matos"},
+  // Cuentas con actividades Qualified
+  {id:"0013000000M1BNMAA3",name:"Duro Felguera S.A.",ownerId:"0053y00000GBWynAAH",owner:"Paloma Rudino"},
+  {id:"0010M00001SIikLQAT",name:"AELCA DESARROLLOS INMOBILIARIOS SLU",ownerId:"005ed000000RLjVAAW",owner:"Alejandro Gavilan"},
+  {id:"0010M00001Qkg7DQAR",name:"J.B.M. CAMPLLONG S.L.",ownerId:"005ed000000RMyvAAG",owner:"Adrià Giner"},
+];
+
+// Deduplicar por id
+const seen = new Set();
+const uniqueAccounts = accounts.filter(a => {
+  if (seen.has(a.id)) return false;
+  seen.add(a.id);
+  return true;
+}).map(a => {
+  const mgr = managerByOwner[a.ownerId] || {flm:"",rvp:""};
+  return {...a, flm: mgr.flm, rvp: mgr.rvp};
+});
+
+// ─── RENDER ──────────────────────────────────────────────────────────────────
+document.getElementById('updatedDate').textContent = new Date().toLocaleDateString('es-ES', {day:'2-digit',month:'long',year:'numeric'});
+
+// Populate RVP filter
+const rvpSet = [...new Set(uniqueAccounts.map(a => a.rvp).filter(Boolean))].sort();
+const rvpFilter = document.getElementById('rvpFilter');
+rvpSet.forEach(rvp => {
+  const opt = document.createElement('option');
+  opt.value = rvp;
+  opt.textContent = rvp;
+  rvpFilter.appendChild(opt);
+});
+
+// Populate FLM filter (all FLMs initially)
+function rebuildFlmFilter(selectedRvp) {
+  const flmFilter = document.getElementById('flmFilter');
+  const current = flmFilter.value;
+  flmFilter.innerHTML = '<option value="">Todos los FLM</option>';
+  const flmSet = [...new Set(
+    uniqueAccounts
+      .filter(a => !selectedRvp || a.rvp === selectedRvp)
+      .map(a => a.flm).filter(Boolean)
+  )].sort();
+  flmSet.forEach(flm => {
+    const opt = document.createElement('option');
+    opt.value = flm;
+    opt.textContent = flm;
+    if (flm === current) opt.selected = true;
+    flmFilter.appendChild(opt);
+  });
+}
+
+// Populate AE filter
+function rebuildAeFilter(selectedRvp, selectedFlm) {
+  const aeFilter = document.getElementById('aeFilter');
+  const current = aeFilter.value;
+  aeFilter.innerHTML = '<option value="">Todos los AEs</option>';
+  const aeSet = [...new Set(
+    uniqueAccounts
+      .filter(a => (!selectedRvp || a.rvp === selectedRvp) && (!selectedFlm || a.flm === selectedFlm))
+      .map(a => a.owner).filter(Boolean)
+  )].sort();
+  aeSet.forEach(ae => {
+    const opt = document.createElement('option');
+    opt.value = ae;
+    opt.textContent = ae;
+    if (ae === current) opt.selected = true;
+    aeFilter.appendChild(opt);
+  });
+}
+
+rebuildFlmFilter('');
+rebuildAeFilter('', '');
+
+function onRvpChange() {
+  const rvp = document.getElementById('rvpFilter').value;
+  rebuildFlmFilter(rvp);
+  rebuildAeFilter(rvp, '');
+  filterTable();
+}
+
+function onFlmChange() {
+  const rvp = document.getElementById('rvpFilter').value;
+  const flm = document.getElementById('flmFilter').value;
+  rebuildAeFilter(rvp, flm);
+  filterTable();
+}
+
+document.getElementById('flmFilter').onchange = onFlmChange;
+
+let sortCol = 0, sortAsc = true;
+
+function renderTable() {
+  const rvp = document.getElementById('rvpFilter').value;
+  const flm = document.getElementById('flmFilter').value;
+  const ae = document.getElementById('aeFilter').value;
+  const search = document.getElementById('searchInput').value.toLowerCase();
+  const pipeOnly = document.getElementById('pipeOnly').checked;
+  const posOnly = document.getElementById('posicionadoOnly').checked;
+
+  let rows = uniqueAccounts.filter(a => {
+    if (rvp && a.rvp !== rvp) return false;
+    if (flm && a.flm !== flm) return false;
+    if (ae && a.owner !== ae) return false;
+    if (search && !a.name.toLowerCase().includes(search)) return false;
+    if (pipeOnly && !pipeByAccount[a.id]) return false;
+    if (posOnly && !posicionadoByAccount[a.id]) return false;
+    return true;
+  });
+
+  // Sort
+  rows.sort((a, b) => {
+    let va, vb;
+    if (sortCol === 0) { va = a.name; vb = b.name; }
+    else if (sortCol === 1) { va = a.owner; vb = b.owner; }
+    else if (sortCol === 2) { va = a.flm || ''; vb = b.flm || ''; }
+    else if (sortCol === 3) { va = a.rvp || ''; vb = b.rvp || ''; }
+    else if (sortCol === 4) { va = posicionadoByAccount[a.id] ? 0 : 1; vb = posicionadoByAccount[b.id] ? 0 : 1; }
+    else if (sortCol === 5) { va = pipeByAccount[a.id] || 0; vb = pipeByAccount[b.id] || 0; }
+    if (typeof va === 'string') return sortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
+    return sortAsc ? va - vb : vb - va;
+  });
+
+  const tbody = document.getElementById('tableBody');
+  tbody.innerHTML = '';
+
+  rows.forEach(a => {
+    const posicionado = posicionadoByAccount[a.id];
+    const pipe = pipeByAccount[a.id];
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="account"><a href="https://org62.lightning.force.com/lightning/r/Account/${a.id}/view" target="_blank">${a.name}</a></td>
+      <td>${a.owner}</td>
+      <td style="font-size:12px;color:#555">${a.flm || '<span style="color:#ccc">—</span>'}</td>
+      <td style="font-size:12px;color:#555">${a.rvp || '<span style="color:#ccc">—</span>'}</td>
+      <td>${posicionado
+        ? '<span class="badge yes">✓ Posicionado</span>'
+        : '<span class="badge no">— Sin actividad</span>'}</td>
+      <td>${pipe
+        ? `<span class="pipe">€${pipe.toLocaleString('es-ES',{minimumFractionDigits:0,maximumFractionDigits:0})}</span>`
+        : '<span class="no-pipe">—</span>'}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  document.getElementById('countVisible').textContent = rows.length;
+  document.getElementById('countPosicionado').textContent = rows.filter(a => posicionadoByAccount[a.id]).length;
+  const totalPipe = rows.reduce((sum, a) => sum + (pipeByAccount[a.id] || 0), 0);
+  document.getElementById('totalPipe').textContent = totalPipe > 0
+    ? '€' + Math.round(totalPipe / 1000) + 'k'
+    : '€0';
+
+  document.getElementById('emptyState').style.display = rows.length === 0 ? 'block' : 'none';
+  document.getElementById('mainTable').style.display = rows.length === 0 ? 'none' : 'table';
+}
+
+function filterTable() { renderTable(); }
+
+function sortTable(col) {
+  if (sortCol === col) sortAsc = !sortAsc;
+  else { sortCol = col; sortAsc = true; }
+  renderTable();
+}
+
+renderTable();
+</script>
+</body>
+</html>

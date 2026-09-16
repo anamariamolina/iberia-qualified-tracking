@@ -74,12 +74,13 @@
 
     <div class="checkboxes">
       <label><input type="checkbox" id="pipeOnly" onchange="filterTable()"> Solo con Open Pipe</label>
-      <label><input type="checkbox" id="posicionadoOnly" onchange="filterTable()"> Solo posicionados</label>
+      <label><input type="checkbox" id="posicionadoOnly" onchange="filterTable()"> Solo con Qualified Activity</label>
     </div>
 
     <div class="stats">
       <div class="stat"><div class="num" id="countVisible">—</div><div class="label">Cuentas</div></div>
-      <div class="stat"><div class="num" id="countPosicionado">—</div><div class="label">Posicionadas</div></div>
+      <div class="stat"><div class="num" id="countPosicionado">—</div><div class="label">Qualified Activity</div></div>
+      <div class="stat"><div class="num" id="countPipe">—</div><div class="label">Con Open Pipe</div></div>
       <div class="stat"><div class="num" id="totalPipe">—</div><div class="label">Open Pipe Total</div></div>
     </div>
   </div>
@@ -93,7 +94,7 @@
         <th onclick="sortTable(1)">AE <span class="sort-icon">↕</span></th>
         <th onclick="sortTable(2)">FLM <span class="sort-icon">↕</span></th>
         <th onclick="sortTable(3)">RVP <span class="sort-icon">↕</span></th>
-        <th onclick="sortTable(4)">Qualified Posicionado <span class="sort-icon">↕</span></th>
+        <th onclick="sortTable(4)">Qualified Activity <span class="sort-icon">↕</span></th>
         <th onclick="sortTable(5)">Qualified Open Pipe <span class="sort-icon">↕</span></th>
       </tr>
     </thead>
@@ -552,8 +553,8 @@ function renderTable() {
       <td style="font-size:12px;color:#555">${a.flm || '<span style="color:#ccc">—</span>'}</td>
       <td style="font-size:12px;color:#555">${a.rvp || '<span style="color:#ccc">—</span>'}</td>
       <td>${posicionado
-        ? '<span class="badge yes">✓ Posicionado</span>'
-        : '<span class="badge no">— Sin actividad</span>'}</td>
+        ? '<span class="badge yes">✓ Activity</span>'
+        : '<span class="badge no">—</span>'}</td>
       <td>${pipe
         ? `<a href="https://org62.lightning.force.com/lightning/r/Opportunity/${oppByAccount[a.id]}/view" target="_blank" class="pipe">€${pipe.toLocaleString('es-ES',{minimumFractionDigits:0,maximumFractionDigits:0})}</a>`
         : '<span class="no-pipe">—</span>'}</td>
@@ -563,6 +564,7 @@ function renderTable() {
 
   document.getElementById('countVisible').textContent = rows.length;
   document.getElementById('countPosicionado').textContent = rows.filter(a => posicionadoByAccount[a.id]).length;
+  document.getElementById('countPipe').textContent = rows.filter(a => pipeByAccount[a.id]).length;
   const totalPipe = rows.reduce((sum, a) => sum + (pipeByAccount[a.id] || 0), 0);
   document.getElementById('totalPipe').textContent = totalPipe > 0
     ? '€' + Math.round(totalPipe / 1000) + 'k'

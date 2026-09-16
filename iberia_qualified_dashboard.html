@@ -33,7 +33,8 @@
   .badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; white-space: nowrap; }
   .badge.yes { background: #d4edda; color: #155724; }
   .badge.no { background: #f8f9fa; color: #999; }
-  .pipe { font-weight: 600; color: #166534; }
+  .pipe { font-weight: 600; color: #166534; text-decoration: none; }
+  .pipe:hover { text-decoration: underline; }
   .no-pipe { color: #aaa; }
   .empty-state { text-align: center; padding: 60px; color: #999; }
   .updated { padding: 8px 32px; font-size: 11px; color: #aaa; text-align: right; }
@@ -118,6 +119,22 @@ const pipeByAccount = {
   "0010M00001QqRKfQAN": 116464.33,
   "0013y00001eEy9OAAS": 72790.21,
   "0013000001JzBAlAAN": 43674.12
+};
+
+// AccountId → Opportunity Id (para link directo)
+const oppByAccount = {
+  "0010M00001WI5rqQAD": "006ed00000er3K6AAI",
+  "0013y00001c86X2AAI": "006ed00000j8XBNAA2",
+  "0013000001CCOQAAA5": "006ed00000jpqYxAAI",
+  "0013000001Mj3DCAAZ": "006ed00000gNgXpAAK",
+  "00130000009wxLrAAI": "006ed00000jmqC5AAI",
+  "0010M00001TyX3DQAV": "006ed00000g5zfPAAQ",
+  "0010M00001W8DmuQAF": "006ed00000hgMrOAAU",
+  "00130000002xJG3AAM": "006ed00000jpz9BAAQ",
+  "0010M00001NYdL7QAL": "006ed00000k1JZCAA2",
+  "0010M00001QqRKfQAN": "006ed00000jfb9mAAA",
+  "0013y00001eEy9OAAS": "006ed00000ji0btAAA",
+  "0013000001JzBAlAAN": "006ed00000jlckfAAA"
 };
 
 const posicionadoByAccount = {
@@ -538,7 +555,7 @@ function renderTable() {
         ? '<span class="badge yes">✓ Posicionado</span>'
         : '<span class="badge no">— Sin actividad</span>'}</td>
       <td>${pipe
-        ? `<span class="pipe">€${pipe.toLocaleString('es-ES',{minimumFractionDigits:0,maximumFractionDigits:0})}</span>`
+        ? `<a href="https://org62.lightning.force.com/lightning/r/Opportunity/${oppByAccount[a.id]}/view" target="_blank" class="pipe">€${pipe.toLocaleString('es-ES',{minimumFractionDigits:0,maximumFractionDigits:0})}</a>`
         : '<span class="no-pipe">—</span>'}</td>
     `;
     tbody.appendChild(tr);

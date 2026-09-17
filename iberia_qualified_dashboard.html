@@ -41,6 +41,12 @@
   input[type="text"] { padding: 8px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; width: 200px; }
   .filters-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; width: 100%; }
   .checkboxes { display: flex; gap: 16px; align-items: center; }
+  .resources { background: white; border-top: 1px solid #e0e0e0; padding: 20px 32px 24px; }
+  .resources h2 { font-size: 13px; font-weight: 700; color: #032D60; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 14px; }
+  .resources-grid { display: flex; flex-wrap: wrap; gap: 10px; }
+  .resource-card { display: flex; align-items: center; gap: 8px; padding: 8px 14px; background: #f0f4ff; border: 1px solid #d0daf5; border-radius: 8px; text-decoration: none; color: #032D60; font-size: 13px; font-weight: 500; transition: background 0.15s; white-space: nowrap; }
+  .resource-card:hover { background: #dde6ff; }
+  .resource-card .icon { font-size: 15px; }
 </style>
 </head>
 <body>
@@ -102,6 +108,38 @@
     </tbody>
   </table>
   <div class="empty-state" id="emptyState" style="display:none">No hay cuentas que coincidan con el filtro.</div>
+</div>
+<div class="resources">
+  <h2>🗂 Recursos para vender Qualified</h2>
+  <div class="resources-grid">
+    <a class="resource-card" href="https://salesforce.enterprise.slack.com/docs/T01G0063H29/F0B1X9TMQ6S" target="_blank">
+      <span class="icon">🤖</span> Iberia Qualified Play Recommender (Skill)
+    </a>
+    <a class="resource-card" href="https://salesforce.enterprise.slack.com/docs/T7KUQ9FLZ/F0APWKL21CP" target="_blank">
+      <span class="icon">📋</span> Qualified Cheat Sheet
+    </a>
+    <a class="resource-card" href="https://docs.google.com/presentation/d/1bL2YtBfO30gqQvFQAs0ioy73ez6VCzETMB9GpIZafNQ/edit" target="_blank">
+      <span class="icon">📐</span> Rules of Engagement
+    </a>
+    <a class="resource-card" href="https://salesforce.enterprise.slack.com/docs/T01G0063H29/F0A464ZLHTN" target="_blank">
+      <span class="icon">❓</span> Acquisition FAQs
+    </a>
+    <a class="resource-card" href="https://docs.google.com/spreadsheets/d/1IQit1qwiyKBFkgURm_pyRC1jvwfMrqUOWfUk7E3M7WI/edit" target="_blank">
+      <span class="icon">🔗</span> Joint Counterpart GSheet
+    </a>
+    <a class="resource-card" href="https://docs.google.com/presentation/d/1SJW79tCQaPPgHWliFAgDs3IgP6P-LEdRs4hfA5NmM7Y/edit" target="_blank">
+      <span class="icon">💰</span> Pricing &amp; Packaging
+    </a>
+    <a class="resource-card" href="https://docs.google.com/presentation/d/11haPJ9-tex_yD_-j8Ivz2khJ4ARwIQjfOu0w0eosdyc/edit" target="_blank">
+      <span class="icon">🚀</span> Q2 FY27 Enablement Deck
+    </a>
+    <a class="resource-card" href="https://salesforce.enterprise.slack.com/archives/C0A4DU8UJ8H" target="_blank">
+      <span class="icon">💬</span> #help-sell-qualified (Slack)
+    </a>
+    <a class="resource-card" href="https://sfdc-ww-pricelist-tool-web-prd-8e409bf1eca9.herokuapp.com/" target="_blank">
+      <span class="icon">🌍</span> WW Pricelist Tool
+    </a>
+  </div>
 </div>
 <div class="updated">Datos extraídos de org62.lightning.force.com · Reporte: Iberia Target List for Qualified (00Oed000009IQbZEAW)</div>
 
@@ -194,6 +232,7 @@ const managerByOwner = {
   "0050M00000C1xOLQAZ": {flm:"Guillermo Sanz",rvp:"Pablo Rodriguez Añino"}, // Javier Garnica
   "0050M00000CNScNQAX": {flm:"Manuel Melle Ocáriz",rvp:"Pablo Rodriguez Añino"}, // Juan Roldós Galés
   "0053y00000GBWynAAH": {flm:"Javier Olea",rvp:"Pablo Rodriguez Añino"},   // Paloma Rudino
+  "0050M00000ETKQ8QAP": {flm:"Guillermo Sanz",rvp:"Pablo Rodriguez Añino"}, // Berta Raventós (GRIFOLS)
   "00530000009NDQ2AAO": {flm:"Marcos Tarjuelo",rvp:"Alejandro Romero"},    // Eduardo Sanchez Zorzano (BBVA)
   "0053y00000FyYChAAN": {flm:"Fernando Braz",rvp:"Fernando Braz"},         // Manuel Aveleira (SOGENAVE - Portugal)
   "0050M00000Dtos5QAB": {flm:"Marcos Tarjuelo",rvp:"Alejandro Romero"},    // Beatriz Vazquez
@@ -214,7 +253,6 @@ const managerByOwner = {
   "0050M00000EvUB1QAN": {flm:"Sylvia Moreno",rvp:"Francisco Gil"},         // Marta Marin (PERK PLATFORM)
   // Jesus Martinez (PS) team
   "0053y00000GBX9bAAH": {flm:"Antonio Ceño",rvp:"Jesus Martinez"},         // Maria de la Fuente
-  "005ed000000hTpxAAE": {flm:"Antonio Ceño",rvp:"Jesus Martinez"},         // Pau Vico
 };
 
 // Cuentas verificadas contra org62 — solo RVPs de Iberia:
@@ -323,6 +361,7 @@ const accounts = [
   {id:"0010M00001WA7KhQAL",name:"Eurostars Hotel Company SL",ownerId:"0050M00000CNScNQAX",owner:"Juan Roldós Galés"},
   {id:"0013000000M1BNMAA3",name:"Duro Felguera S.A.",ownerId:"0053y00000GBWynAAH",owner:"Paloma Rudino"},
   {id:"0010M00001PDvYMQA1",name:"Banco Bilbao Vizcaya Argentaria, S.A.",ownerId:"00530000009NDQ2AAO",owner:"Eduardo Sanchez Zorzano"},
+  {id:"0013000000HIo8KAAT",name:"GRIFOLS S.A.",ownerId:"0050M00000ETKQ8QAP",owner:"Berta Raventós"},
   {id:"00130000002xIhWAAU",name:"SOGENAVE",ownerId:"0053y00000FyYChAAN",owner:"Manuel Aveleira"},
   {id:"0010M00001WA6J9QAL",name:"Quental Technologies SL",ownerId:"0050M00000Dtos5QAB",owner:"Beatriz Vazquez"},
   // ── FERNANDO BRAZ (Portugal) ───────────────────────────────────────────────
@@ -348,8 +387,6 @@ const accounts = [
   // ── JESUS MARTINEZ (PS) ────────────────────────────────────────────────────
   {id:"0010M00001QnsjOQAR",name:"Fundación del Teatro Real",ownerId:"0053y00000GBX9bAAH",owner:"Maria de la Fuente"},
   {id:"0013000000FfQklAAF",name:"Muface - Mutualidad General de Funcionarios Civiles del Estado",ownerId:"0053y00000GBX9bAAH",owner:"Maria de la Fuente"},
-  {id:"0013000000HIo8KAAT",name:"GRIFOLS S.A.",ownerId:"005ed000000hTpxAAE",owner:"Pau Vico"},
-  {id:"0013y00001e64btAAA",name:"Biotest AG",ownerId:"005ed000000hTpxAAE",owner:"Pau Vico"},
   // ── Qualified Open Pipe ────────────────────────────────────────────────────
   {id:"0010M00001WI5rqQAD",name:"Freepik Company, S.L.",ownerId:"0053y00000Bz68rAAB",owner:"Ricardo Ruiz"},
   {id:"0013y00001c86X2AAI",name:"NATURGY IBERIA SA",ownerId:"0050M00000CNTVrQAP",owner:"Miguel Torrejón"},
